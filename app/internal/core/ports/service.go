@@ -7,7 +7,9 @@ import (
 )
 
 var (
-	ErrItemNotFound = errors.New("err the item does not exist")
+	ErrItemNotFound  = errors.New("err the item does not exist")
+	ErrNegativePrice = errors.New("err the price should not be negative")
+	ErrMissingPrice  = errors.New("err the price should exist")
 )
 
 type Service interface {
