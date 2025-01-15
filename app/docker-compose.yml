@@ -1,5 +1,6 @@
 services:
   db:
+    container_name: db
     image: postgres
     restart: always
     environment:
@@ -11,11 +12,20 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data 
  
-  # adminer:
-  #   image: adminer
-  #   restart: always
-  #   ports:
-  #     - 8080:8080
+  service:
+    depends_on: 
+      - db
+    build: .
+    restart: always
+    environment:
+      userDB: theAdmin
+      passDB: MyVeryPrivatePassword21
+      dbnameDB: itemsDB
+      urlDB: db
+    ports:
+      - 8000:8000
  
 volumes:
   pgdata:
+
+     
