@@ -54,6 +54,29 @@ func (hdl *HttpHandler) Ping(context *gin.Context) {
 // ]
 func (hdl *HttpHandler) GetItems(context *gin.Context) {
 
+	item, err := hdl.service.GetItems()
+
+	if err != nil {
+		errs := ErrResponse{
+			Errors: make([]Error, 0),
+		}
+
+		if err == ports.ErrInternalDB {
+			errs.Errors = append(errs.Errors, Error{
+				Message: "Internal error with DB",
+			})
+			context.AbortWithStatusJSON(http.StatusInternalServerError, errs)
+			return
+		}
+		errs.Errors = append(errs.Errors, Error{
+			Message: fmt.Sprint("Ups, something went wrong ", err.Error()),
+		})
+
+		context.AbortWithStatusJSON(http.StatusInternalServerError, errs)
+		return
+	}
+
+	context.JSON(http.StatusOK, item)
 }
 
 //	 method: 'GET',
@@ -199,4 +222,38 @@ func (hdl *HttpHandler) UpdateItem(context *gin.Context) {
 //	}
 //
 // 204
-func (hdl *HttpHandler) DeleteItem(context *gin.Context) {}
+func (hdl *HttpHandler) DeleteItem(context *gin.Context) {
+
+	var (
+		itemId = context.Param("id")
+	)
+	err := hdl.service.DeleteItem(itemId)
+
+	if err != nil {
+		errs := ErrResponse{
+			Errors: make([]Error, 0),
+		}
+
+		if err == ports.ErrInternalDB {
+			errs.Errors = append(errs.Errors, Error{
+				Message: "Internal error with DB",
+			})
+			context.AbortWithStatusJSON(http.StatusInternalServerError, errs)
+			return
+		}
+
+		if err == ports.ErrItemNotFound {
+			context.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+
+		errs.Errors = append(errs.Errors, Error{
+			Message: fmt.Sprint("Ups, something went wrong ", err.Error()),
+		})
+
+		context.AbortWithStatusJSON(http.StatusInternalServerError, errs)
+		return
+	}
+
+	context.Status(http.StatusNoContent)
+}

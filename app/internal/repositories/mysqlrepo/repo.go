@@ -49,7 +49,17 @@ func (repo *SqlRepo) FetchOne(id string) (*domain.Item, error) {
 	return item, nil
 }
 func (repo *SqlRepo) FetchAll() ([]*domain.Item, error) {
-	return nil, nil
+	var (
+		items []*domain.Item
+	)
+
+	result := repo.connector.session.Find(&items)
+	if result.Error != nil {
+
+		logs.Error.Println("Error while Fetching date: ", result.Error)
+		return nil, result.Error
+	}
+	return items, nil
 }
 func (repo *SqlRepo) Create(item *domain.Item) error {
 	logs.Info.Printf("Create Item %v\n", item)
@@ -64,6 +74,11 @@ func (repo *SqlRepo) Create(item *domain.Item) error {
 func (repo *SqlRepo) Update(*domain.Item) error {
 	return nil
 }
-func (repo *SqlRepo) Delete(string) error {
+func (repo *SqlRepo) Delete(id string) error {
+	logs.Info.Println("Deleting ", id)
+	if results := repo.connector.session.Unscoped().Delete(&domain.Item{}, &id); results.Error != nil {
+		logs.Error.Println("An error ocoured!: ", results.Error)
+		return results.Error
+	}
 	return nil
 }
