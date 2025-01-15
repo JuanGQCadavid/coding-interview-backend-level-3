@@ -52,7 +52,9 @@ func (hdl *HttpHandler) Ping(context *gin.Context) {
 //	}
 //
 // ]
-func (hdl *HttpHandler) GetItems(context *gin.Context) {}
+func (hdl *HttpHandler) GetItems(context *gin.Context) {
+
+}
 
 //	 method: 'GET',
 //	   url: `/items/${response.result!.id}`
@@ -65,7 +67,40 @@ func (hdl *HttpHandler) GetItems(context *gin.Context) {}
 //		name: 'Item 1',
 //		price: 10
 //	}
-func (hdl *HttpHandler) GetItem(context *gin.Context) {}
+func (hdl *HttpHandler) GetItem(context *gin.Context) {
+	var (
+		itemId = context.Param("id")
+	)
+	item, err := hdl.service.GetItem(itemId)
+
+	if err != nil {
+		errs := ErrResponse{
+			Errors: make([]Error, 0),
+		}
+
+		if err == ports.ErrInternalDB {
+			errs.Errors = append(errs.Errors, Error{
+				Message: "Internal error with DB",
+			})
+			context.AbortWithStatusJSON(http.StatusInternalServerError, errs)
+			return
+		}
+
+		if err == ports.ErrItemNotFound {
+			context.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+
+		errs.Errors = append(errs.Errors, Error{
+			Message: fmt.Sprint("Ups, something went wrong ", err.Error()),
+		})
+
+		context.AbortWithStatusJSON(http.StatusInternalServerError, errs)
+		return
+	}
+
+	context.JSON(http.StatusOK, item)
+}
 
 // Validations: 400 status code : POST | PUT
 // errors: [
