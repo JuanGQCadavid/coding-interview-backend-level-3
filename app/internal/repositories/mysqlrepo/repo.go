@@ -71,7 +71,11 @@ func (repo *SqlRepo) Create(item *domain.Item) error {
 
 	return nil
 }
-func (repo *SqlRepo) Update(*domain.Item) error {
+func (repo *SqlRepo) Update(item *domain.Item) error {
+	if results := repo.connector.session.Save(item); results.Error != nil {
+		logs.Error.Println("An error ocoured while updating!: ", results.Error)
+		return results.Error
+	}
 	return nil
 }
 func (repo *SqlRepo) Delete(id string) error {

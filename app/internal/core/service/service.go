@@ -48,6 +48,10 @@ func (svc *ItemsService) validateRequest(item *domain.Item) error {
 		return ports.ErrNegativePrice
 	}
 
+	if item.Price == 0 {
+		return ports.ErrMissingPrice
+	}
+
 	return nil
 }
 
@@ -79,7 +83,7 @@ func (svc *ItemsService) UpdateItem(item *domain.Item) (*domain.Item, error) {
 		return nil, ports.ErrItemNotFound
 	}
 
-	if _, err := svc.UpdateItem(item); err != nil {
+	if err := svc.repository.Update(item); err != nil {
 		logs.Error.Println("There is an error on db: ", err.Error())
 		return nil, ports.ErrInternalDB
 	}
@@ -90,20 +94,16 @@ func (svc *ItemsService) UpdateItem(item *domain.Item) (*domain.Item, error) {
 // Throws:
 // ErrItemNotFound if id not found
 func (svc *ItemsService) DeleteItem(id string) error {
-	logs.Info.Println("SUP 1")
 	originalItem, _ := svc.repository.FetchOne(id)
 
 	if originalItem == nil {
 		return ports.ErrItemNotFound
 	}
-	logs.Info.Println("SUP 2")
 
 	if err := svc.repository.Delete(id); err != nil {
 		logs.Error.Println("There is an error on db: ", err.Error())
 		return ports.ErrInternalDB
 	}
-
-	logs.Info.Println("SUP 3 ")
 
 	return nil
 }

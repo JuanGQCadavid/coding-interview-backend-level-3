@@ -213,7 +213,54 @@ func (hdl *HttpHandler) CreateItem(context *gin.Context) {
 
 // 200 -> Propose 204
 func (hdl *HttpHandler) UpdateItem(context *gin.Context) {
-	// validateRequest(item *domain.Item)
+	var (
+		item   *domain.Item = &domain.Item{}
+		itemId              = context.Param("id")
+	)
+	context.BindJSON(item)
+	item.Id = itemId
+
+	response, err := hdl.service.UpdateItem(item)
+
+	if err != nil {
+		errs := ErrResponse{
+			Errors: make([]Error, 0),
+		}
+
+		if err == ports.ErrInternalDB {
+			errs.Errors = append(errs.Errors, Error{
+				Message: "Internal error with DB",
+			})
+			context.AbortWithStatusJSON(http.StatusInternalServerError, errs)
+			return
+		}
+
+		if err == ports.ErrNegativePrice {
+			errs.Errors = append(errs.Errors, Error{
+				Field:   "price",
+				Message: "Field \"price\" cannot be negative",
+			})
+			context.AbortWithStatusJSON(http.StatusBadRequest, errs)
+			return
+		}
+
+		if err == ports.ErrMissingPrice {
+			errs.Errors = append(errs.Errors, Error{
+				Field:   "price",
+				Message: "Field \"price\" is required",
+			})
+			context.AbortWithStatusJSON(http.StatusBadRequest, errs)
+			return
+		}
+		errs.Errors = append(errs.Errors, Error{
+			Message: fmt.Sprint("Ups, something went wrong ", err.Error()),
+		})
+
+		context.AbortWithStatusJSON(http.StatusInternalServerError, errs)
+		return
+	}
+
+	context.JSON(http.StatusOK, response)
 }
 
 //	{
