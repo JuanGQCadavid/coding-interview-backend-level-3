@@ -17,7 +17,7 @@ type PostgresSQLConnnector struct {
 
 func NewConector(dbUser string, dbPassword string, dbName string, dbUrl string) (*PostgresSQLConnnector, error) {
 	// dsn := "host=localhost user=gorm password=gorm dbname=gorm port=9920 sslmode=disable TimeZone=Asia/Shanghai"
-	url := fmt.Sprintf("postgres://%s:%s@%s:3306/%s?TimeZone=UTC", dbUser, dbPassword, dbUrl, dbName)
+	url := fmt.Sprintf("postgres://%s:%s@%s:5432/%s?TimeZone=UTC", dbUser, dbPassword, dbUrl, dbName)
 	session, err := gorm.Open(postgres.Open(url), &gorm.Config{})
 
 	if err != nil {
@@ -29,11 +29,11 @@ func NewConector(dbUser string, dbPassword string, dbName string, dbUrl string) 
 
 }
 
-func NewConectorFromEnv() (*PostgresSQLConnnector, error) {
-	dbUser, isPresentUser := os.LookupEnv("dbUser")
-	dbPassword, isPresentPass := os.LookupEnv("dbPassword")
-	dbName, isPresentName := os.LookupEnv("dbName")
-	dbUrl, isPresentUrl := os.LookupEnv("dbUrl")
+func NewConectorFromEnv(user, pass, dbname, url string) (*PostgresSQLConnnector, error) {
+	dbUser, isPresentUser := os.LookupEnv(user)
+	dbPassword, isPresentPass := os.LookupEnv(pass)
+	dbName, isPresentName := os.LookupEnv(dbname)
+	dbUrl, isPresentUrl := os.LookupEnv(url)
 
 	if !isPresentUrl || !isPresentName || !isPresentPass || !isPresentUser {
 		log.Println("dbUser: ", dbUser)

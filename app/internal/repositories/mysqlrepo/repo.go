@@ -9,12 +9,19 @@ type SqlRepo struct {
 	connector *PostgresSQLConnnector
 }
 
-func NewRDSRepoFromEnv() (*SqlRepo, error) {
-	connector, err := NewConectorFromEnv()
+func NewRDSWithConnector(connector *PostgresSQLConnnector) *SqlRepo {
+	connector.Migrate()
+	return &SqlRepo{
+		connector: connector,
+	}
+}
+
+func NewRDSRepoFromEnv(userEnvName, passEnvName, dbnameEnvName, urlEnvName string) (*SqlRepo, error) {
+	connector, err := NewConectorFromEnv(userEnvName, passEnvName, dbnameEnvName, urlEnvName)
 	if err != nil {
 		return nil, err
 	}
-
+	connector.Migrate()
 	return &SqlRepo{
 		connector: connector,
 	}, nil

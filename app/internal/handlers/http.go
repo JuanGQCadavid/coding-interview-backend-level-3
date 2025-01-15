@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"fmt"
+	"net/http"
+
 	"github.com/JuanGQCadavid/coding-interview-backend-level-3/app/internal/core/domain"
 	"github.com/JuanGQCadavid/coding-interview-backend-level-3/app/internal/core/ports"
 	"github.com/gin-gonic/gin"
@@ -31,7 +34,11 @@ func (hdl *HttpHandler) SetRouter(router *gin.Engine) {
 // method: 'GET',
 //
 //	url: '/ping' - 200
-func (hdl *HttpHandler) Ping(context *gin.Context) {}
+func (hdl *HttpHandler) Ping(context *gin.Context) {
+	context.JSON(http.StatusOK, &PingResponse{
+		Ok: true,
+	})
+}
 
 // method: 'GET',
 // url: '/items' - 200
@@ -88,7 +95,53 @@ func (hdl *HttpHandler) validateRequest(item *domain.Item) error {
 //		price: 10
 //	}
 func (hdl *HttpHandler) CreateItem(context *gin.Context) {
-	// validateRequest(item *domain.Item)
+	var (
+		item *domain.Item = &domain.Item{}
+	)
+
+	context.BindJSON(item)
+
+	response, err := hdl.service.CreateItem(item)
+
+	if err != nil {
+		errs := ErrResponse{
+			Errors: make([]Error, 0),
+		}
+
+		if err == ports.ErrInternalDB {
+			errs.Errors = append(errs.Errors, Error{
+				Message: "Internal error with DB",
+			})
+			context.AbortWithStatusJSON(http.StatusInternalServerError, errs)
+			return
+		}
+
+		if err == ports.ErrNegativePrice {
+			errs.Errors = append(errs.Errors, Error{
+				Field:   "price",
+				Message: "Field \"price\" cannot be negative",
+			})
+			context.AbortWithStatusJSON(http.StatusBadRequest, errs)
+			return
+		}
+
+		if err == ports.ErrMissingPrice {
+			errs.Errors = append(errs.Errors, Error{
+				Field:   "price",
+				Message: "Field \"price\" is required",
+			})
+			context.AbortWithStatusJSON(http.StatusBadRequest, errs)
+			return
+		}
+		errs.Errors = append(errs.Errors, Error{
+			Message: fmt.Sprint("Ups, something went wrong ", err.Error()),
+		})
+
+		context.AbortWithStatusJSON(http.StatusInternalServerError, errs)
+		return
+	}
+
+	context.JSON(http.StatusOK, response)
 }
 
 // {
