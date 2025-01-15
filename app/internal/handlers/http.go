@@ -199,7 +199,7 @@ func (hdl *HttpHandler) CreateItem(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusOK, response)
+	context.JSON(http.StatusCreated, response)
 }
 
 // {
