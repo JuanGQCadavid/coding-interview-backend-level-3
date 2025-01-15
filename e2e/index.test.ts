@@ -1,233 +1,233 @@
-import { initializeServer } from '../src/server'
-import { Server } from '@hapi/hapi'
 
+/*
+
+     This code was generated using ChatGPT
+     The task was to change from javsscript server to the golang server.
+
+     Original file is located in .back folder
+
+*/
+
+
+import fetch from 'node-fetch'; // Ensure you install node-fetch: npm install node-fetch
 describe('E2E Tests', () => {
-    let server: Server
+    const serverAddress = 'http://127.0.0.1:8000'; // Replace with your Go server's address and port
+
     type Item = {
         id: number
         name: string
         price: number
-    }
-
-    beforeEach(async () => {
-        server = await initializeServer()
-    })
+    };
 
     it('should get a response with status code 200', async () => {
-        await server.inject({
+        const response = await fetch(`${serverAddress}/ping`, {
             method: 'GET',
-            url: '/ping'
-        })
-            .then(response => {
-                expect(response.statusCode).toBe(200)
-                expect(response.result).toEqual({ ok: true })
-            })
+        });
+        const result = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(result).toEqual({ ok: true });
     });
 
     describe("Basic Items functionality", () => {
         it("should be able to list all items", async () => {
-            const response = await server.inject({
+            const response = await fetch(`${serverAddress}/items`, {
                 method: 'GET',
-                url: '/items'
-            })
-            expect(response.statusCode).toBe(200)
-            expect(response.result).toEqual([])
+            });
+            const result = await response.json();
 
-            await server.inject({
+            expect(response.status).toBe(200);
+            expect(result).toEqual([]);
+
+            await fetch(`${serverAddress}/items`, {
                 method: 'POST',
-                url: '/items',
-                payload: {
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     name: 'Item 1',
                     price: 10
-                }
-            })
+                }),
+            });
 
-            const response2 = await server.inject({
+            const response2 = await fetch(`${serverAddress}/items`, {
                 method: 'GET',
-                url: '/items'
-            })
-            expect(response2.statusCode).toBe(200)
-            expect(response2.result).toEqual([{
+            });
+            const result2 = await response2.json();
+
+            expect(response2.status).toBe(200);
+            expect(result2).toEqual([{
                 id: expect.any(Number),
                 name: 'Item 1',
                 price: 10
-            }])
-        })
+            }]);
+        });
 
         it("should be able to create a new item and get it by id", async () => {
-            const response = await server.inject<Item>({
+            const response = await fetch(`${serverAddress}/items`, {
                 method: 'POST',
-                url: '/items',
-                payload: {
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     name: 'Item 1',
                     price: 10
-                }
-            })
-            expect(response.statusCode).toBe(201)
-            expect(response.result).toEqual({
+                }),
+            });
+            const result = await response.json();
+
+            expect(response.status).toBe(201);
+            expect(result).toEqual({
                 id: expect.any(Number),
                 name: 'Item 1',
                 price: 10
-            })
+            });
 
-            const response2 = await server.inject({
+            const response2 = await fetch(`${serverAddress}/items/${result.id}`, {
                 method: 'GET',
-                url: `/items/${response.result!.id}`
-            })
+            });
+            const result2 = await response2.json();
 
-            expect(response2.statusCode).toBe(200)
-            expect(response2.result).toEqual({
-                id: expect.any(Number),
+            expect(response2.status).toBe(200);
+            expect(result2).toEqual({
+                id: result.id,
                 name: 'Item 1',
                 price: 10
-            })
-        })
+            });
+        });
 
         it("should be able to update an item", async () => {
-            const { result: createdItem } = await server.inject<Item>({
+            const response = await fetch(`${serverAddress}/items`, {
                 method: 'POST',
-                url: '/items',
-                payload: {
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     name: 'Item 1',
                     price: 10
-                }
-            })
+                }),
+            });
+            const createdItem = await response.json();
 
-            expect(createdItem).toBeDefined()
-
-            const response = await server.inject({
+            const updateResponse = await fetch(`${serverAddress}/items/${createdItem.id}`, {
                 method: 'PUT',
-                url: `/items/${createdItem!.id}`,
-                payload: {
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     name: 'Item 1 updated',
                     price: 20
-                }
-            })
-            expect(response.statusCode).toBe(200)
-            expect(response.result).toEqual({
-                id: createdItem!.id,
-                name: 'Item 1 updated',
-                price: 20
-            })
+                }),
+            });
+            const updatedItem = await updateResponse.json();
 
-            const response2 = await server.inject({
-                method: 'GET',
-                url: `/items/${createdItem!.id}`
-            })
-            expect(response2.statusCode).toBe(200)
-            expect(response2.result).toEqual({
-                id: createdItem!.id,
+            expect(updateResponse.status).toBe(200);
+            expect(updatedItem).toEqual({
+                id: createdItem.id,
                 name: 'Item 1 updated',
                 price: 20
-            })
-        })
+            });
+
+            const response2 = await fetch(`${serverAddress}/items/${createdItem.id}`, {
+                method: 'GET',
+            });
+            const result2 = await response2.json();
+
+            expect(response2.status).toBe(200);
+            expect(result2).toEqual(updatedItem);
+        });
 
         it("should be able to delete an item", async () => {
-            const { result: createdItem } = await server.inject<Item>({
+            const response = await fetch(`${serverAddress}/items`, {
                 method: 'POST',
-                url: '/items',
-                payload: {
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     name: 'Item 1',
                     price: 10
-                }
-            })
+                }),
+            });
+            const createdItem = await response.json();
 
-            expect(createdItem).toBeDefined()
-
-            const response = await server.inject({
+            const deleteResponse = await fetch(`${serverAddress}/items/${createdItem.id}`, {
                 method: 'DELETE',
-                url: `/items/${createdItem!.id}`
-            })
-            expect(response.statusCode).toBe(204)
+            });
 
-            const response2 = await server.inject({
+            expect(deleteResponse.status).toBe(204);
+
+            const response2 = await fetch(`${serverAddress}/items/${createdItem.id}`, {
                 method: 'GET',
-                url: `/items/${createdItem!.id}`
-            })
+            });
 
-            expect(response2.statusCode).toBe(404)
-        })
-    })
+            expect(response2.status).toBe(404);
+        });
+    });
 
     describe("Validations", () => {
-
-        it("should validate required fields", async ()=>{
-
-            const response = await server.inject({
+        it("should validate required fields", async () => {
+            const response = await fetch(`${serverAddress}/items`, {
                 method: 'POST',
-                url: '/items',
-                payload: {
-                    name: 'Item 1'
-                }
-            })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: 'Item 1',
+                }),
+            });
+            const result = await response.json();
 
-            expect(response.statusCode).toBe(400)
-            expect(response.result).toEqual({
+            expect(response.status).toBe(400);
+            expect(result).toEqual({
                 errors: [
                     {
                         field: 'price',
                         message: 'Field "price" is required'
                     }
                 ]
-            })
+            });
+        });
 
-        })
-
-        it("should not allow for negative pricing for new items", async ()=>{
-            const response = await server.inject({
+        it("should not allow negative pricing for new items", async () => {
+            const response = await fetch(`${serverAddress}/items`, {
                 method: 'POST',
-                url: '/items',
-                payload: {
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     name: 'Item 1',
                     price: -10
-                }
-            })
+                }),
+            });
+            const result = await response.json();
 
-            expect(response.statusCode).toBe(400)
-            expect(response.result).toEqual({
+            expect(response.status).toBe(400);
+            expect(result).toEqual({
                 errors: [
                     {
                         field: 'price',
                         message: 'Field "price" cannot be negative'
                     }
                 ]
-            })
-        })
+            });
+        });
 
-        it("should not allow for negative pricing for updated items", async ()=>{
-            const { result: createdItem } = await server.inject<Item>({
+        it("should not allow negative pricing for updated items", async () => {
+            const response = await fetch(`${serverAddress}/items`, {
                 method: 'POST',
-                url: '/items',
-                payload: {
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     name: 'Item 1',
                     price: 10
-                }
-            })
+                }),
+            });
+            const createdItem = await response.json();
 
-            expect(createdItem).toBeDefined()
-
-            const response = await server.inject({
+            const updateResponse = await fetch(`${serverAddress}/items/${createdItem.id}`, {
                 method: 'PUT',
-                url: `/items/${createdItem!.id}`,
-                payload: {
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     name: 'Item 1 updated',
                     price: -20
-                }
-            })
+                }),
+            });
+            const result = await updateResponse.json();
 
-            expect(response.statusCode).toBe(400)
-            expect(response.result).toEqual({
+            expect(updateResponse.status).toBe(400);
+            expect(result).toEqual({
                 errors: [
                     {
                         field: 'price',
                         message: 'Field "price" cannot be negative'
                     }
                 ]
-            })
-        })
-    })
-
-    afterAll(() => {
-        return server.stop()
-    })
-})
+            });
+        });
+    });
+});
