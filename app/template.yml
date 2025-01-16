@@ -1,0 +1,141 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Items service.
+Parameters:
+  Env:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - prod
+    Description: enviroment
+  ServiceImageVersion:
+    Type: String
+    Description: Service image
+  ServiceName:
+    Type: String
+    Description: Service name
+    Default: items-svc
+  ServiceDescription:
+    Type: String
+    Description: Service description
+    Default: Items service
+  ServiceRoute:
+    Type: String
+    Description: Service description
+    Default: ANY /items
+  ECROutput:
+    Type: String
+    Description: Service ECR cloudformation output
+    Default: interview-ecr-uri
+Mappings:
+  ServiceConfig:
+    prod:
+      RAM: 128
+      TimeOut: 60
+
+Resources:
+  ServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      MaxSessionDuration: 3600
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+        - arn:aws:iam::aws:policy/AWSXrayFullAccess
+
+  ServiceLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Architectures: 
+        - x86_64
+      Code: 
+        ImageUri: 
+          Fn::Sub:
+            - "${ECR_URI}:${VERSION}"
+            - VERSION: !Ref ServiceImageVersion
+              ECR_URI: 
+                Fn::ImportValue:
+                  !Ref ECROutput
+      Description: !Ref ServiceDescription
+      Environment:
+        Variables:
+          userDB: userDB
+          passDB: passDB
+          dbnameDB: dbnameDB
+          urlDB: urlDB
+      FunctionName: !Sub ${ServiceName}-${Env}
+      MemorySize: !FindInMap ['ServiceConfig', !Ref Env, 'RAM']
+      PackageType: Image
+      Role: !GetAtt ServiceRole.Arn
+      Tags: 
+        - Key: App
+          Value: Interview
+        - Key: Env
+          Value: !Ref Env
+        - Key: Service
+          Value: !Ref ServiceName
+      Timeout: !FindInMap ['ServiceConfig', !Ref Env, 'TimeOut']
+      TracingConfig:
+        Mode: Active
+
+  LambdaApiGatewayPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ServiceLambda
+      Principal: apigateway.amazonaws.com
+
+  ServiceAPIGatewayIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId:
+        Fn::ImportValue: 
+            !Sub ${Env}-interview-gateway-id
+      Description: !Ref ServiceDescription
+      IntegrationMethod: POST
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Join
+        - ''
+        - - 'arn:'
+          - !Ref 'AWS::Partition'
+          - ':apigateway:'
+          - !Ref 'AWS::Region'
+          - ':lambda:path/2015-03-31/functions/'
+          - !GetAtt ServiceLambda.Arn
+          - /invocations
+      PayloadFormatVersion: '1.0'
+
+  APIGatewayIntegration:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: 
+        Fn::ImportValue: 
+            !Sub ${Env}-interview-gateway-id
+      OperationName: !Sub ${ServiceName}-${Env}
+      RouteKey: !Ref ServiceRoute
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ServiceAPIGatewayIntegration
+
+  APIGatewayIntegrationProxy:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: 
+        Fn::ImportValue: 
+            !Sub ${Env}-interview-gateway-id
+      OperationName: !Sub ${ServiceName}-${Env}-proxy
+      RouteKey: !Sub ${ServiceRoute}/{proxy+}
+      Target: !Join
+        - /
+        - - integrations
+          - !Ref ServiceAPIGatewayIntegration

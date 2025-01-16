@@ -1,0 +1,172 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Item services.
+Parameters:
+  Env:
+    Type: String
+    Default: staging
+    AllowedValues:
+      - prod
+    Description: Enviroment
+Mappings:
+  SubnetConfig:
+    prod:
+      ReverseProxyDNS: "interview.pululapp.com"
+      DomainName: "pululapp.com" 
+      DomainHostedZoneId: "Z05194622U3QC4KFX487P"
+Conditions:
+  CreateProdResources: !Equals
+    - !Ref Env
+    - prod
+
+Resources:
+
+  ############################################################
+  #
+  # Central ApiGateway
+  #
+  ############################################################
+  
+  CentralGateway:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      # CorsConfiguration: 
+      #   Cors
+      # CredentialsArn: String
+      Description: All backend services are bieng expose by this reverse proxy 
+      # DisableExecuteApiEndpoint: Boolean
+      Name: !Sub interviews-central-${Env}
+      ProtocolType: HTTP
+      # RouteKey: "$default"
+      Tags: 
+        App: Interview
+        Env: !Ref Env
+      # Target: String
+      # Version: String
+
+  DefaultStage:
+    DependsOn:
+      - CentralGateway
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref CentralGateway
+      AutoDeploy: true
+      StageName: "$default"
+
+  ApiGatewayCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !FindInMap [SubnetConfig, !Ref Env, ReverseProxyDNS]
+      ValidationMethod: DNS
+      CertificateTransparencyLoggingPreference: ENABLED
+      SubjectAlternativeNames:
+        - !FindInMap [SubnetConfig, !Ref Env, ReverseProxyDNS]
+      DomainValidationOptions:
+        - DomainName: !FindInMap [SubnetConfig, !Ref Env, DomainName]
+          HostedZoneId: !FindInMap [SubnetConfig, !Ref Env, DomainHostedZoneId]
+
+  ApiGatewayCustomDomain:
+    Type: AWS::ApiGatewayV2::DomainName
+    Properties:
+      DomainName: !FindInMap [SubnetConfig, !Ref Env, ReverseProxyDNS]
+      DomainNameConfigurations: 
+        - CertificateArn: !Ref ApiGatewayCertificate
+          CertificateName: !FindInMap [SubnetConfig, !Ref Env, ReverseProxyDNS] 
+      Tags: 
+        App: Interview
+        Env: !Ref Env
+        Stackish: Core
+
+  ApiMapping:
+    DependsOn:
+      - CentralGateway
+      - ApiGatewayCustomDomain
+      - DefaultStage 
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Properties:
+      ApiId: !Ref CentralGateway
+      Stage: "$default" 
+      DomainName: !Ref ApiGatewayCustomDomain
+
+  ApiGatewayRoute53:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !FindInMap [SubnetConfig, !Ref Env, DomainHostedZoneId]
+      Name: !FindInMap [SubnetConfig, !Ref Env, ReverseProxyDNS]
+      Type: A
+      AliasTarget:
+        HostedZoneId: !GetAtt ApiGatewayCustomDomain.RegionalHostedZoneId
+        DNSName: !GetAtt ApiGatewayCustomDomain.RegionalDomainName
+
+  ############################################################
+  #
+  # ECR Repositories - Prod only in order to have one per both envs
+  #
+  ############################################################
+
+  InterviewRepository:
+    Type: AWS::ECR::Repository
+    Condition: CreateProdResources
+    Properties:
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: interview-service
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep the latest 5 release images",
+                "selection": {
+                  "tagStatus": "tagged",
+                  "tagPatternList": [
+                    "*.*.*"
+                  ],
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+                },
+                "action": { "type": "expire" }
+              },
+              {
+                "rulePriority": 2,
+                "description": "Keep the last 5 untagged images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+      Tags: 
+        - Key: App
+          Value: Interview
+        - Key: Env
+          Value: !Ref Env
+
+Outputs:
+  CentralApIGateway:
+    Value: !FindInMap [SubnetConfig, !Ref Env, ReverseProxyDNS]
+    Export:
+      Name: !Sub ${Env}-interview-gateway-url
+  ApiGatewayID:
+    Value: !Ref CentralGateway
+    Export:
+      Name: !Sub ${Env}-interview-gateway-id
+
+  ############################################################
+  #
+  # ECR Ouputs
+  #
+  ############################################################
+
+  InterviewRepositoryOutput:
+    Condition: CreateProdResources
+    Value: !GetAtt InterviewRepository.RepositoryUri
+    Export:
+      Name: interview-ecr-uri
+
+ 

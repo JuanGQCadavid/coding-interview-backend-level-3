@@ -15,7 +15,7 @@ services:
   service:
     depends_on: 
       - db
-    build: .
+    build: ./app
     restart: always
     environment:
       userDB: theAdmin
