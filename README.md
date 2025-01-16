@@ -1,5 +1,9 @@
 # Bienvenido al coding-interview-backend-level-3
 
+## Service
+
+The Golang service was coded using Hexagonal architecture, 
+
 ## Descripción
 Este proyecto es una API REST que permite realizar operaciones CRUD sobre una entidad de tipo `Item`.
 
