@@ -51,6 +51,6 @@ jobs:
     with:
       stack-name: ${{ inputs.stack-name }}
       workdir: ${{ inputs.service-dir }}
-      env: prod
+      app-env: prod
       parameter-overrides: ServiceImageVersion=${{ github.sha }} 
 

@@ -17,7 +17,7 @@ on:
         required: false
         default: ""
         type: string
-      env:
+      app-env:
         description: 'Env'
         required: true
         type: string
@@ -38,7 +38,7 @@ defaults:
 jobs:
   Cloudformation-publish:
     runs-on: ubuntu-latest
-    environment: ${{env}}
+    environment: ${{inputs.app-env}}
     steps:
      
       #######################################################
@@ -74,18 +74,18 @@ jobs:
         name: Deploying Cloudformation with extra parameters
         if: ${{ inputs.parameter-overrides != '' }}
         with:
-          name: ${{ inputs.stack-name }}-${{ inputs.env }}
+          name: ${{ inputs.stack-name }}-${{ inputs.app-env }}
           template: ${{ inputs.workdir }}/template.yml
           no-fail-on-empty-changeset: "1"
           capabilities: CAPABILITY_NAMED_IAM, CAPABILITY_IAM
-          parameter-overrides: Env=${{ inputs.env }},${{ inputs.parameter-overrides }}
+          parameter-overrides: Env=${{ inputs.app-env }},${{ inputs.parameter-overrides }}
 
       - uses: aws-actions/aws-cloudformation-github-deploy@v1
         name: Deploying Cloudformation with no extra parameters
         if: ${{ inputs.parameter-overrides == '' }}
         with:
-          name: ${{ inputs.stack-name }}-${{ inputs.env }}
+          name: ${{ inputs.stack-name }}-${{ inputs.app-env }}
           template: ${{ inputs.workdir }}/template.yml
           no-fail-on-empty-changeset: "1"
           capabilities: CAPABILITY_NAMED_IAM, CAPABILITY_IAM
-          parameter-overrides: Env=${{ inputs.env }}
+          parameter-overrides: Env=${{ inputs.app-env }}
