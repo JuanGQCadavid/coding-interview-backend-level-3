@@ -29,10 +29,6 @@ on:
         required: true
       AWS_ACCOUNT_ID:
         required: true
-      DOCKERHUB_USERNAME: 
-        required: true
-      DOCKERHUB_TOKEN:
-        required: true
 jobs:
   build-container:
     uses: ./.github/workflows/container-build-push.yml
