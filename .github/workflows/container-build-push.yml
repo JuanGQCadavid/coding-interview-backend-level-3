@@ -33,6 +33,7 @@ on:
 defaults:
   run:
     shell: bash
+  environment: prod
 
 jobs:
   Docker-build-push:
