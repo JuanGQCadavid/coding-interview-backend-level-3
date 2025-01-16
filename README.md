@@ -8,6 +8,13 @@ Postman: See email for invite link
 
 The Golang service was coded using Hexagonal architecture.
 
+In order to run the app locally, you could:
+
+```
+cd app
+docker compose up --build
+```
+
 ## Infraestructure
 
 All the infra is IaaC, the only component that was not as code is the RDS, as it is one already created for my personal projects.
