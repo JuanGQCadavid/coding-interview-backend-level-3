@@ -1,8 +1,24 @@
 # Bienvenido al coding-interview-backend-level-3
 
+PROD: https://interview.pululapp.com/items
+
 ## Service
 
-The Golang service was coded using Hexagonal architecture, 
+The Golang service was coded using Hexagonal architecture.
+
+## Infraestructure
+
+All the infra is IaaC, the only component that was not as code is the RDS, as it is one already created for my personal projects.
+
+The service is a docker image deployed on an amd64 lambda using ECR; it is exposed using an API gateway and route53 for the DNS, and Certificate manager for the SSL certificate.
+
+![interview-Infra (1)](https://github.com/user-attachments/assets/18b21f9d-b5b0-42ea-a1c5-31ecf648d7fc)
+
+## CI/CD
+
+The CI/CD is triggered automatically by a change on the main branch; it will detect whether it is an infra or service change and deploy its corresponding workflow.
+
+![interview-CI_cd](https://github.com/user-attachments/assets/2e0379ed-b480-45f8-bcfd-ebba61e258b5)
 
 ## Descripción
 Este proyecto es una API REST que permite realizar operaciones CRUD sobre una entidad de tipo `Item`.
