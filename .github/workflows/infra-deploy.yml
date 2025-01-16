@@ -1,0 +1,33 @@
+
+---
+name: Infra deploy
+
+on:
+  workflow_call:
+    inputs:
+      stack-name:
+        description: "The name of the CloudFormation stack"
+        required: true
+        type: string
+      workdir:
+        description: "The path to the CloudFormation template"
+        required: true
+        type: string
+    secrets:
+      AWS_ACCESS_KEY_ID: 
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      AWS_REGION:
+        required: true
+      AWS_ACCOUNT_ID:
+        required: true
+jobs:
+  deploy-cloudformation-prod:
+    uses: ./.github/workflows/cloudformation-deploy.yml
+    secrets: inherit
+    needs: [deploy-cloudformation-staging]
+    with:
+      stack-name: ${{ inputs.stack-name }}
+      workdir:  ${{ inputs.workdir }}
+      env: prod

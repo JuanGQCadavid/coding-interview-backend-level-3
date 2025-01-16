@@ -1,0 +1,62 @@
+---
+name: CI and CD
+on:
+  push:
+    branches:
+      - main
+
+defaults:
+  run:
+    shell: bash
+
+jobs:    
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      items-service: ${{ steps.filter.outputs.itemsService }}
+      core-infra: ${{ steps.filter.outputs.coreInfra }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            itemsService:
+              - 'app/**'
+            coreInfra:
+              - 'infra/**'
+
+  infra-stack:
+    needs: [changes]
+    name:  Main core infra CI/CD
+    uses: ./.github/workflows/infra-deploy.yml
+    secrets: inherit
+    if:  ${{ needs.changes.outputs.core-infra == 'true' }} 
+    with:
+      stack-name: interviews
+      workdir: ./infra 
+
+  service-build-push:
+    needs: [changes]
+    strategy:
+      matrix:
+        lookup: [
+          {
+            "items-service": { 
+              "stack-name": "interviews-items",
+              "docker-image-name": "interview-service",
+              "service-dir": "./app"
+            },
+          }
+        ]
+        services: [items-service]
+    name:  ${{ matrix.lookup[matrix.services].stack-name }}
+    uses: ./.github/workflows/service-build-deploy.yml
+    secrets: inherit
+    with:
+      deploy: ${{ needs.changes.outputs[matrix.services] == 'true' }}
+      stack-name: ${{ matrix.lookup[matrix.services].stack-name }}
+      docker-image-name: ${{ matrix.lookup[matrix.services].docker-image-name }}
+      service-dir: ${{ matrix.lookup[matrix.services].service-dir }}
+  
