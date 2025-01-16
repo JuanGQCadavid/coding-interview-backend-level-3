@@ -36,6 +36,7 @@ defaults:
 
 jobs:
   Docker-build-push:
+    environment: prod
     runs-on: ubuntu-latest
     steps:
      

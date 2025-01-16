@@ -54,7 +54,6 @@ jobs:
     name:  ${{ matrix.lookup[matrix.services].stack-name }}
     uses: ./.github/workflows/service-build-deploy.yml
     secrets: inherit
-    environment: prod
     with:
       deploy: ${{ needs.changes.outputs[matrix.services] == 'true' }}
       stack-name: ${{ matrix.lookup[matrix.services].stack-name }}
