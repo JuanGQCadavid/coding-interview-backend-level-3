@@ -1,0 +1,31 @@
+services:
+  db:
+    container_name: db
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: MyVeryPrivatePassword21
+      POSTGRES_USER: theAdmin
+      POSTGRES_DB: itemsDB
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data 
+ 
+  service:
+    depends_on: 
+      - db
+    build: ./app
+    restart: always
+    environment:
+      userDB: theAdmin
+      passDB: MyVeryPrivatePassword21
+      dbnameDB: itemsDB
+      urlDB: db
+    ports:
+      - 8000:8000
+ 
+volumes:
+  pgdata:
+
+     
