@@ -26,7 +26,6 @@ jobs:
   deploy-cloudformation-prod:
     uses: ./.github/workflows/cloudformation-deploy.yml
     secrets: inherit
-    needs: [deploy-cloudformation-staging]
     with:
       stack-name: ${{ inputs.stack-name }}
       workdir:  ${{ inputs.workdir }}
